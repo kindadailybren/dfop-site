@@ -5,6 +5,7 @@ cdk.out/
 *.js.map
 *.d.ts
 !packages/shared/src/**/*.d.ts
+!frontend/src/**/*.d.ts
 .env
 .env.*
 !.env.example
