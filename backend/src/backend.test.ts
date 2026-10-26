@@ -62,7 +62,7 @@ describe('DFOP Backend API Handler', () => {
     assert.equal(createRes.statusCode, 201);
     const createdBody = JSON.parse(createRes.body!);
     const sessionId: string = createdBody.session.id;
-    assert.equal(createdBody.session.participants.length, 16);
+    assert.equal(createdBody.session.participants.length, 24);
 
     // 2. Generate balanced 7-aside teams
     const genRes = await handler(
@@ -75,7 +75,7 @@ describe('DFOP Backend API Handler', () => {
     const genBody = JSON.parse(genRes.body!);
     assert.equal(genBody.teamA.length, 7);
     assert.equal(genBody.teamB.length, 7);
-    assert.equal(genBody.bench.length, 2);
+    assert.equal(genBody.bench.length, 10);
 
     // 3. Create Game 1
     const teamAIds = genBody.teamA.map((p: { playerId: string }) => p.playerId);

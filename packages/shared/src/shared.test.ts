@@ -12,14 +12,56 @@ import {
 } from './index.js';
 
 describe('@dfop/shared', () => {
-  it('parses valid CSV with header and normalizes skills/positions', () => {
+  it('parses valid DFOP sheet CSV with Payment, numbered names, Interm/Adv/Messi, and compound positions', () => {
     const csv = generateSampleCsv();
     const res = parseParticipantsCsv(csv);
     assert.equal(res.errors.length, 0);
-    assert.equal(res.rows.length, 16);
-    assert.equal(res.rows[0].name, 'Marcus Vance');
-    assert.equal(res.rows[0].skill, 'Advanced');
-    assert.equal(res.rows[0].preferredPosition, 'MID');
+    assert.equal(res.rows.length, 24);
+    assert.equal(res.rows[0].name, 'Geolina, Jeffren John');
+    assert.equal(res.rows[0].skill, 'Intermediate');
+    assert.equal(res.rows[0].preferredPosition, 'DEF');
+    // Row 15: Medina, Breindel Obtial (Messi -> Advanced, GK/Attack/Defense -> GK)
+    assert.equal(res.rows[14].name, 'Medina, Breindel Obtial');
+    assert.equal(res.rows[14].skill, 'Advanced');
+    assert.equal(res.rows[14].preferredPosition, 'GK');
+  });
+
+  it('parses vertical multi-line Google Sheets copy-paste format and ignores empty numbered slots', () => {
+    const rawSheetPaste = `
+Payment
+Name
+Position
+Experience
+Games played
+/
+1. Geolina, Jeffren John
+Defense
+Interm
+
+/
+2. Lalong, Zainne Nazar
+Attack/Defense
+Beginner
+
+15. Medina, Breindel Obtial
+GK/Attack/Defense
+Messi
+
+25.
+
+26.
+`;
+    const res = parseParticipantsCsv(rawSheetPaste);
+    assert.equal(res.errors.length, 0);
+    assert.equal(res.rows.length, 3);
+    assert.equal(res.rows[0].name, 'Geolina, Jeffren John');
+    assert.equal(res.rows[0].skill, 'Intermediate');
+    assert.equal(res.rows[0].preferredPosition, 'DEF');
+    assert.equal(res.rows[1].name, 'Lalong, Zainne Nazar');
+    assert.equal(res.rows[1].preferredPosition, 'MID');
+    assert.equal(res.rows[2].name, 'Medina, Breindel Obtial');
+    assert.equal(res.rows[2].skill, 'Advanced');
+    assert.equal(res.rows[2].preferredPosition, 'GK');
   });
 
   it('detects fuzzy matches against existing players', () => {
@@ -75,11 +117,12 @@ describe('@dfop/shared', () => {
 
     assert.equal(result.teamA.length, 7);
     assert.equal(result.teamB.length, 7);
-    assert.equal(result.bench.length, 2);
+    assert.equal(result.bench.length, 10);
 
     // The 2 players with 2 games played should be on the bench
-    const benchIds = result.bench.map((b) => b.playerId).sort();
-    assert.deepEqual(benchIds, ['p-1', 'p-2']);
+    const benchIds = result.bench.map((b) => b.playerId);
+    assert.ok(benchIds.includes('p-1'));
+    assert.ok(benchIds.includes('p-2'));
 
     // Skill difference between Team A and Team B should be minimal (<= 1)
     assert.ok(

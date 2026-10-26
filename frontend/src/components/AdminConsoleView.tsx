@@ -398,8 +398,9 @@ export const AdminConsoleView: React.FC<AdminConsoleViewProps> = ({
                 Start New Davao Football Open Play Session
               </h1>
               <p className="text-xs sm:text-sm text-slate-300 mt-1">
-                Upload your participant CSV (`Name, Skill, Preferred Position`) to
-                initialize today&apos;s session and match returning players.
+                Upload your DFOP sheet `.csv` (`Payment, Name, Position, Experience, Games played`)
+                or copy-paste directly from Google Sheets (supports `/`, numbered names,
+                `Defense`, `Attack`, `Attack/Defense`, `GK/Attack/Defense`, and `Beginner`/`Interm`/`Adv`).
               </p>
             </div>
             <button
@@ -466,7 +467,7 @@ export const AdminConsoleView: React.FC<AdminConsoleViewProps> = ({
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-semibold text-slate-300">
-                  CSV Roster (`Name, Skill, Preferred Position`)
+                  DFOP Sheet Paste or CSV (`Payment, Name, Position, Experience`)
                 </label>
                 <label className="inline-flex items-center gap-1.5 px-3 py-1 rounded bg-[#1447E6]/20 border border-[#3B82F6]/40 text-xs text-[#93C5FD] hover:text-white cursor-pointer">
                   <UploadIcon className="w-3.5 h-3.5" />
