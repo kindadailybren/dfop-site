@@ -72,16 +72,18 @@ Since DNS for `breindel.me` is managed outside Route 53 (e.g., Cloudflare / Name
 
 4. **Create your Admin User in Cognito**:
    ```bash
-   USER_POOL_ID="<CognitoUserPoolId output>"
+   USER_POOL_ID="ap-southeast-1_cwgXrRA5j"
    aws cognito-idp admin-create-user \
+     --region ap-southeast-1 \
      --user-pool-id "$USER_POOL_ID" \
-     --username "admin@dfop.breindel.me" \
-     --user-attributes Name=email,Value=admin@dfop.breindel.me Name=email_verified,Value=true \
+     --username "breindelm6@gmail.com" \
+     --user-attributes Name=email,Value=breindelm6@gmail.com Name=email_verified,Value=true \
      --message-action SUPPRESS
 
    aws cognito-idp admin-set-user-password \
+     --region ap-southeast-1 \
      --user-pool-id "$USER_POOL_ID" \
-     --username "admin@dfop.breindel.me" \
+     --username "breindelm6@gmail.com" \
      --password "YourStrongPassword123" \
      --permanent
    ```

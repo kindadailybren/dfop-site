@@ -88,7 +88,7 @@ export const AdminConsoleView: React.FC<AdminConsoleViewProps> = ({
   const [adminUser, setAdminUser] = useState<AdminUserSession | null>(() =>
     getSavedAdminSession()
   );
-  const [username, setUsername] = useState('admin@dfop.breindel.me');
+  const [username, setUsername] = useState('breindelm6@gmail.com');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);

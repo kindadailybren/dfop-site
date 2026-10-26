@@ -14,6 +14,7 @@ import * as lambda from 'aws-cdk-lib/aws-lambda';
 import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
 import * as logs from 'aws-cdk-lib/aws-logs';
 import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as s3deploy from 'aws-cdk-lib/aws-s3-deployment';
 import { Construct } from 'constructs';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -313,6 +314,23 @@ export class DfopStack extends cdk.Stack {
         },
       ],
     });
+
+    const frontendDistCandidates = [
+      path.resolve(__dirname, '../../frontend/dist'),
+      path.resolve(__dirname, '../../../frontend/dist'),
+    ];
+    const frontendDistPath = frontendDistCandidates.find((p) =>
+      fs.existsSync(p)
+    );
+
+    if (frontendDistPath) {
+      new s3deploy.BucketDeployment(this, 'DfopFrontendDeployment', {
+        sources: [s3deploy.Source.asset(frontendDistPath)],
+        destinationBucket: this.frontendBucket,
+        distribution: this.distribution,
+        distributionPaths: ['/*'],
+      });
+    }
 
     // -------------------------------------------------------------------------
     // 6. Stack Outputs (for External DNS CNAME & GitHub Actions CI/CD)
