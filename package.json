@@ -16,7 +16,7 @@
     "dev:frontend": "npm --workspace=frontend run dev",
     "dev:backend": "npm --workspace=backend run dev",
     "cdk:synth": "npm --workspace=infra run synth",
-    "cdk:deploy": "npm --workspace=infra run deploy"
+    "cdk:deploy": "npm run build && npm --workspace=infra run deploy"
   },
   "devDependencies": {
     "typescript": "^5.6.3"
