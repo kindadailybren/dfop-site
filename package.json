@@ -1,0 +1,24 @@
+{
+  "name": "dfop-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "DFOP Football Team Maker, Live Match Tracker & Player Stats Monorepo",
+  "workspaces": [
+    "packages/shared",
+    "backend",
+    "frontend",
+    "infra"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev:frontend": "npm --workspace=frontend run dev",
+    "dev:backend": "npm --workspace=backend run dev",
+    "cdk:synth": "npm --workspace=infra run synth",
+    "cdk:deploy": "npm --workspace=infra run deploy"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  }
+}

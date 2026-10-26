@@ -1,0 +1,24 @@
+{
+  "name": "@dfop/infra",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "synth": "cdk synth",
+    "diff": "cdk diff",
+    "deploy": "cdk deploy --require-approval never",
+    "test": "tsc -p tsconfig.json && node --test dist/**/*.test.js"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.166.0",
+    "constructs": "^10.4.2",
+    "esbuild": "^0.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.6",
+    "aws-cdk": "^2.166.0",
+    "tsx": "^4.19.2"
+  }
+}

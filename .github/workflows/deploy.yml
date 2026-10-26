@@ -1,0 +1,202 @@
+name: DFOP Monorepo CI/CD
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+env:
+  AWS_REGION: ${{ vars.AWS_REGION || 'ap-southeast-1' }}
+  DOMAIN_NAME: ${{ vars.DOMAIN_NAME || 'dfop.breindel.me' }}
+
+jobs:
+  detect-changes:
+    name: Detect Changed Monorepo Paths
+    runs-on: ubuntu-latest
+    outputs:
+      shared: ${{ steps.filter.outputs.shared }}
+      backend: ${{ steps.filter.outputs.backend }}
+      infra: ${{ steps.filter.outputs.infra }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      deploy_backend: ${{ steps.filter.outputs.backend == 'true' || steps.filter.outputs.infra == 'true' || steps.filter.outputs.shared == 'true' || github.event_name == 'workflow_dispatch' }}
+      deploy_frontend: ${{ steps.filter.outputs.frontend == 'true' || steps.filter.outputs.infra == 'true' || steps.filter.outputs.shared == 'true' || github.event_name == 'workflow_dispatch' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check modified paths
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            shared:
+              - 'packages/shared/**'
+              - 'package.json'
+              - 'tsconfig.base.json'
+            backend:
+              - 'backend/**'
+            infra:
+              - 'infra/**'
+            frontend:
+              - 'frontend/**'
+
+  validate-and-test:
+    name: Typecheck, Test & Build Changed Workspaces
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build and test @dfop/shared
+        run: |
+          npm --workspace=@dfop/shared run build
+          npm --workspace=@dfop/shared run test
+
+      - name: Test Backend (when backend or shared changed)
+        if: needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.shared == 'true'
+        run: |
+          npm --workspace=@dfop/backend run typecheck
+          npm --workspace=@dfop/backend run test
+
+      - name: Test CDK Infra (when infra, backend, or shared changed)
+        if: needs.detect-changes.outputs.infra == 'true' || needs.detect-changes.outputs.backend == 'true' || needs.detect-changes.outputs.shared == 'true'
+        run: |
+          npm --workspace=@dfop/infra run typecheck
+          npm --workspace=@dfop/infra run test
+
+      - name: Build Frontend (when frontend or shared changed)
+        if: needs.detect-changes.outputs.frontend == 'true' || needs.detect-changes.outputs.shared == 'true'
+        run: |
+          npm --workspace=@dfop/frontend run typecheck
+          npm --workspace=@dfop/frontend run build
+
+  deploy-backend-infra:
+    name: Deploy Backend & CDK Stack (AWS)
+    needs: [detect-changes, validate-and-test]
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.detect-changes.outputs.deploy_backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build @dfop/shared
+        run: npm --workspace=@dfop/shared run build
+
+      - name: Configure AWS Credentials (OIDC)
+        if: secrets.AWS_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configure AWS Credentials (Access Keys Fallback)
+        if: secrets.AWS_ROLE_ARN == ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Deploy CDK Stack (DfopStack)
+        working-directory: infra
+        env:
+          ACM_CERTIFICATE_ARN: ${{ secrets.ACM_CERTIFICATE_ARN || vars.ACM_CERTIFICATE_ARN }}
+          DOMAIN_NAME: ${{ env.DOMAIN_NAME }}
+        run: npx cdk deploy DfopStack --require-approval never
+
+  deploy-frontend:
+    name: Build & Sync Frontend to S3 + CloudFront
+    needs: [detect-changes, validate-and-test, deploy-backend-infra]
+    if: |
+      always() &&
+      github.ref == 'refs/heads/main' &&
+      github.event_name != 'pull_request' &&
+      needs.validate-and-test.result == 'success' &&
+      (needs.deploy-backend-infra.result == 'success' || needs.deploy-backend-infra.result == 'skipped') &&
+      needs.detect-changes.outputs.deploy_frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Configure AWS Credentials (OIDC)
+        if: secrets.AWS_ROLE_ARN != ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configure AWS Credentials (Access Keys Fallback)
+        if: secrets.AWS_ROLE_ARN == ''
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Read CloudFormation Outputs from DfopStack
+        id: cfn
+        run: |
+          STACK_JSON=$(aws cloudformation describe-stacks --stack-name DfopStack --query "Stacks[0].Outputs" --output json)
+          BUCKET_NAME=$(echo "$STACK_JSON" | jq -r '.[] | select(.OutputKey=="FrontendBucketName") | .OutputValue')
+          DIST_ID=$(echo "$STACK_JSON" | jq -r '.[] | select(.OutputKey=="CloudFrontDistributionId") | .OutputValue')
+          USER_POOL_ID=$(echo "$STACK_JSON" | jq -r '.[] | select(.OutputKey=="CognitoUserPoolId") | .OutputValue')
+          CLIENT_ID=$(echo "$STACK_JSON" | jq -r '.[] | select(.OutputKey=="CognitoUserPoolClientId") | .OutputValue')
+
+          echo "bucket_name=$BUCKET_NAME" >> "$GITHUB_OUTPUT"
+          echo "distribution_id=$DIST_ID" >> "$GITHUB_OUTPUT"
+          echo "user_pool_id=$USER_POOL_ID" >> "$GITHUB_OUTPUT"
+          echo "client_id=$CLIENT_ID" >> "$GITHUB_OUTPUT"
+
+      - name: Build Frontend SPA
+        env:
+          VITE_AWS_REGION: ${{ env.AWS_REGION }}
+          VITE_COGNITO_USER_POOL_ID: ${{ steps.cfn.outputs.user_pool_id }}
+          VITE_COGNITO_USER_POOL_CLIENT_ID: ${{ steps.cfn.outputs.client_id }}
+        run: npm --workspace=@dfop/frontend run build
+
+      - name: Sync Frontend Assets to S3
+        run: |
+          aws s3 sync frontend/dist "s3://${{ steps.cfn.outputs.bucket_name }}" --delete
+
+      - name: Invalidate CloudFront Distribution Cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "${{ steps.cfn.outputs.distribution_id }}" \
+            --paths "/*"

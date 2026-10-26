@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+cdk.out/
+*.js.map
+*.d.ts
+!packages/shared/src/**/*.d.ts
+.env
+.env.*
+!.env.example
+.DS_Store
+coverage/

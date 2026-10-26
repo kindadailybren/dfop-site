@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/components/AdminConsoleView.tsx","./src/components/Icons.tsx","./src/components/LeaderboardView.tsx","./src/components/MatchdayView.tsx","./src/components/SessionsArchiveView.tsx","./src/components/TacticalPitch.tsx","./src/lib/apiClient.ts","./src/lib/auth.ts"],"version":"5.9.3"}
