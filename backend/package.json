@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "npm --workspace=@dfop/shared run build && tsc -p tsconfig.json && node --test dist/**/*.test.js",
+    "test": "npm --workspace=@dfop/shared run build && tsc -p tsconfig.json && node --test dist/backend.test.js",
     "dev": "npm --workspace=@dfop/shared run build && tsc -p tsconfig.json && USE_IN_MEMORY_DB=true node dist/localServer.js"
   },
   "dependencies": {

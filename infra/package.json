@@ -9,7 +9,7 @@
     "synth": "cdk synth",
     "diff": "cdk diff",
     "deploy": "cdk deploy --require-approval never",
-    "test": "tsc -p tsconfig.json && node --test dist/**/*.test.js"
+    "test": "tsc -p tsconfig.json && node --test dist/test/dfop-stack.test.js"
   },
   "dependencies": {
     "aws-cdk-lib": "^2.166.0",

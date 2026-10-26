@@ -41,6 +41,7 @@ jobs:
               - 'packages/shared/**'
               - 'package.json'
               - 'tsconfig.base.json'
+              - '.github/workflows/**'
             backend:
               - 'backend/**'
             infra:
